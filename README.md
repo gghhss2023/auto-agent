@@ -17,8 +17,7 @@ Type `/do` followed by any instruction. The agent will:
 | Component | File | Role |
 |-----------|------|------|
 | Skill | `commands/do.md` | `/do` slash command entry point |
-| Hook | `hooks/post_tool.sh` | Logs every tool call |
-| Hook | `hooks/stop.sh` | Summarizes session on exit |
+| Hooks | `hooks/post_tool.sh`, `hooks/stop.sh` | Log tool calls / summarize session on exit |
 | MCP | filesystem, playwright, github | Extended tool access |
 | Memory | `task_log.md` | Persists task history across sessions |
 | Config | `settings.json` | Registers hooks and MCP servers |
