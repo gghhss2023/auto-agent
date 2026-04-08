@@ -21,6 +21,8 @@ Type `/do` followed by any instruction. The agent will:
 | Hook | `hooks/stop.sh` | Summarizes session on exit |
 | MCP | filesystem, playwright, github | Extended tool access |
 | Memory | `task_log.md` | Persists task history across sessions |
+| Config | `settings.json` | Registers hooks and MCP servers |
+| Docs | `README.md` | Setup guide and usage reference |
 
 ## Installation
 
