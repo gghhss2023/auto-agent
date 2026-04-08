@@ -1,6 +1,8 @@
-# AutoDo — Universal Automation Plugin for Claude Code
+# Auto Agent — Claude Code 通用自动化插件
 
-A Claude Code plugin that turns `/do <anything>` into a fully autonomous execution agent.
+**EN:** A Claude Code plugin that turns `/do <anything>` into a fully autonomous execution agent — it decomposes tasks, executes them in parallel, and remembers results across sessions.
+
+**中文：** 一个 Claude Code 插件，输入 `/do <任意指令>` 即可启动自主执行代理 —— 自动拆解任务、并行执行、跨会话记忆结果。
 
 ## What it does
 
