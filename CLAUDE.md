@@ -25,3 +25,8 @@
 - Report results concisely
 - No summaries of what was just done
 - No unnecessary emojis
+
+## Context Management
+- After each major task, remind the user to start a new conversation to avoid token accumulation
+- Keep responses short to conserve context window
+- Use `/compact` when context is getting long
