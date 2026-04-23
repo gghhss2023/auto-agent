@@ -16,12 +16,13 @@ Type `/do` followed by any instruction. The agent will:
 
 | Component | File | Role |
 |-----------|------|------|
-| Skill | `commands/do.md` | `/do` slash command entry point |
-| Hooks | `hooks/post_tool.sh`, `hooks/stop.sh` | Log tool calls / summarize session on exit |
-| MCP | filesystem, playwright, github | Extended tool access |
-| Memory | `task_log.md` | Persists task history across sessions |
-| Config | `settings.json` | Registers hooks and MCP servers |
-| Instructions | `CLAUDE.md` | Global agent behavior rules + auto context management |
+| Skill | `do.md` | `/do` slash command entry point |
+| Pre-tool guard | `pre_tool_guard.sh` | Blocks 5 risky Bash patterns (find-in-bg, mdfind, git --force, --no-verify, rm -rf on root/home) |
+| Session start | `session_start.sh` | Auto-injects `feedback_*.md` memory files at every session start |
+| Post-tool log | `post_tool.sh` | Logs tool calls to `~/.claude/hooks/tool_log.jsonl` |
+| Stop summary | `stop.sh` | Appends session summary to memory on exit |
+| Config template | `settings.json.example` | Registers all 4 hooks; copy and adapt |
+| Instructions | `CLAUDE.md` | Global agent behavior rules |
 | Docs | `README.md` | Setup guide and usage reference |
 
 ## Installation
@@ -29,36 +30,27 @@ Type `/do` followed by any instruction. The agent will:
 ### 1. Copy files
 
 ```bash
-mkdir -p ~/.claude/commands ~/.claude/hooks
+mkdir -p ~/.claude/commands ~/.claude/hooks ~/.claude/memory
 
+# Slash command
 cp do.md ~/.claude/commands/
-cp post_tool.sh ~/.claude/hooks/
-cp stop.sh ~/.claude/hooks/
 
-chmod +x ~/.claude/hooks/post_tool.sh
-chmod +x ~/.claude/hooks/stop.sh
+# Hooks
+cp *.sh ~/.claude/hooks/
+chmod +x ~/.claude/hooks/*.sh
+
+# Global instructions
+cp CLAUDE.md ~/.claude/
 ```
 
 ### 2. Register hooks in `~/.claude/settings.json`
 
-```json
-{
-  "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "~/.claude/hooks/post_tool.sh" }]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [{ "type": "command", "command": "~/.claude/hooks/stop.sh" }]
-      }
-    ]
-  }
-}
-```
+Merge the contents of `settings.json.example` into your existing `~/.claude/settings.json`. Four hooks are registered:
+
+- **SessionStart** → `session_start.sh` (injects feedback rules)
+- **PreToolUse** (Bash) → `pre_tool_guard.sh` (blocks risky commands)
+- **PostToolUse** → `post_tool.sh` (logs tool calls)
+- **Stop** → `stop.sh` (session summary)
 
 ### 3. Add MCP servers
 
@@ -74,6 +66,47 @@ claude mcp add github -e GITHUB_TOKEN=<your_token> -- npx -y @modelcontextprotoc
 ```
 
 ### 4. Restart Claude Code
+
+## Hooks in detail
+
+### `pre_tool_guard.sh` — PreToolUse guard
+
+Blocks 5 dangerous Bash patterns before execution, returning `{"decision":"block"}`:
+
+| # | Pattern blocked | Why |
+|---|-----------------|-----|
+| 1 | `find /` / `find ~` with `run_in_background:true` | 0-byte output file can't be verified; use Monitor tool instead |
+| 2 | `mdfind` | Spotlight index is stale/incomplete; use `find / -iname` |
+| 3 | `git push --force` without `--force-with-lease` | Unsafe; use lease variant |
+| 4 | `git (commit\|push\|merge\|rebase) --no-verify` | Bypasses hooks |
+| 5 | `rm -rf` on `/`, `~`, `$HOME`, `.`, `..` | Confirm with user first |
+
+### `session_start.sh` — SessionStart feedback injection
+
+Scans `$CLAUDE_MEMORY_DIR` (or `~/.claude/memory/`, or auto-discovered `~/.claude/projects/*/memory/`) for any `feedback_*.md` files and injects their bodies (skipping YAML frontmatter) into every session start. This means lessons learned from past corrections are always in-context — no need to rely on Claude reading memory files proactively.
+
+**Recommended feedback files:**
+- `feedback_communication_style.md` — how Claude should communicate
+- `feedback_verify_not_claim.md` — verify before asserting
+- `feedback_one_shot.md` — fix all issues in one pass
+- `feedback_search_and_destroy.md` — macOS cleanup checklist
+- `feedback_use_edit_not_write.md` — prefer Edit over Write for existing files
+
+File format:
+
+```markdown
+---
+name: Short title
+description: One-line summary
+type: feedback
+---
+
+Rule statement.
+
+**Why:** Reason / past incident.
+
+**How to apply:** When this kicks in.
+```
 
 ## Usage
 
